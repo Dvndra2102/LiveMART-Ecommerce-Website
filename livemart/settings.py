@@ -129,8 +129,8 @@ LOGOUT_REDIRECT_URL = "landing_page"
 ACCOUNT_LOGOUT_ON_GET = True
 
 # Razorpay
-RAZORPAY_KEY_ID = "rzp_test_RipdLrkG1EYLDt" # test key id
-RAZORPAY_KEY_SECRET = "M6diBDKcEjLriLtKyT2tlieq" # test key secret
+RAZORPAY_KEY_ID = "YOUR_RAZORPAY_KEY_ID" # test key id
+RAZORPAY_KEY_SECRET = "YOUR_RAZORPAY_KEY_SECRET" # test key secret
 
 # Google OAuth
 SOCIALACCOUNT_PROVIDERS = {
