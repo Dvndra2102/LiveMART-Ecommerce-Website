@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Connect with Local Retailers | LocalMarket{% endblock %}
+
+{% block content %}
+
+<!-- Hero Section (f1.png) -->
+<div class="relative bg-gray-800">
+    <!-- Background Image (simulated with a gradient) -->
+    <div class="absolute inset-0">
+        <!-- In a real app, you'd use a static image:
+        <img src="{% static 'images/hero-background.jpg' %}" alt="Local market" class="w-full h-full object-cover">
+        -->
+        <!-- Background image: uses static hero first, falls back to placeholder -->
+        <div class="w-full h-full bg-cover bg-center" style="background-image: url('https://www.truthmedia.gr/sites/default/files/styles/blog_704_328/public/online-shopping-ecommerce-ss-1920_1.png?itok=zZqSf5Gk'), url('{% static 'img/landing-hero.png' %}'), url('https://placehold.co/1600x800/374151/4B5563?text=Local+Market+Image');"></div>
+        <div class="absolute inset-0 bg-black opacity-50"></div>
+    </div>
+    
+    <!-- Hero Content -->
+    <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-32 sm:py-48 text-center">
+        <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold text-white leading-tight">
+            Connect with <span class="text-cyan-400">Local Retailers</span>
+        </h1>
+        <p class="mt-6 text-xl text-gray-300">
+            Discover quality products from trusted local stores in your area. Shop online, support local.
+        </p>
+        <div class="mt-10 flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+            <a href="{% url 'account_signup' %}" class="px-8 py-3 text-lg font-medium text-white bg-cyan-500 rounded-lg hover:bg-cyan-600">
+                Get Started
+            </a>
+            <a href="{% url 'store:product_list' %}" class="px-8 py-3 text-lg font-medium text-gray-800 bg-white rounded-lg hover:bg-gray-100">
+                Browse Products
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Features Section (f2.png) -->
+<div class="bg-white py-16 sm:py-24">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center">
+            <h2 class="text-3xl font-bold text-gray-900">Why Choose LocalMarket?</h2>
+        </div>
+        
+        <div class="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- Feature 1: Support Local -->
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-8 text-center">
+                <!-- Icon -->
+                <div class="flex items-center justify-center h-16 w-16 bg-cyan-100 text-cyan-500 rounded-full mx-auto">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M10.707 2.293a1 1 0 00-1.414 0L4.586 7H3a1 1 0 00-1 1v9a1 1 0 001 1h14a1 1 0 001-1V8a1 1 0 00-1-1h-1.586l-4.707-4.707zM12 18H8v-4a1 1 0 011-1h2a1 1 0 011 1v4zM11 7.414l3 3V16h-2v-4a3 3 0 00-6 0v4H4V10.414l3-3z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Support Local</h3>
+                <p class="mt-2 text-gray-600">
+                    Buy directly from retailers in your community and help local businesses thrive.
+                </p>
+            </div>
+            
+            <!-- Feature 2: Easy Shopping -->
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-8 text-center">
+                <!-- Icon -->
+                <div class="flex items-center justify-center h-16 w-16 bg-red-100 text-red-500 rounded-full mx-auto">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Easy Shopping</h3>
+                <p class="mt-2 text-gray-600">
+                    Browse products, add to cart, and complete your purchase with just a few clicks.
+                </p>
+            </div>
+
+            <!-- Feature 3: Secure Payments -->
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-8 text-center">
+                <!-- Icon -->
+                <div class="flex items-center justify-center h-16 w-16 bg-green-100 text-green-500 rounded-full mx-auto">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Secure Payments</h3>
+                <p class="mt-2 text-gray-600">
+                    Shop with confidence using our secure payment system and buyer protection.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CTA Section (f2.png) -->
+<div class="bg-gray-50 py-16 sm:py-24">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 class="text-3xl font-bold text-gray-900">Ready to Start Shopping?</h2>
+        <p class="mt-4 text-lg text-gray-600">
+            Join thousands of customers who are already supporting their local retailers.
+        </p>
+        <div class="mt-8">
+            <a href="{% url 'account_signup' %}" class="px-8 py-3 text-lg font-medium text-white bg-cyan-500 rounded-lg hover:bg-cyan-600">
+                Create Your Account
+            </a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

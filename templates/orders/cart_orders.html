@@ -1,0 +1,172 @@
+{# templates/orders/cart_orders.html - tolerant / defensive cart template #}
+{% extends "base.html" %}
+
+{% block title %}Your Shopping Cart{% endblock %}
+
+{% block content %}
+<div class="container mx-auto mt-10 max-w-4xl">
+    <h1 class="text-3xl font-bold mb-6 text-gray-800">Your Shopping Cart</h1>
+
+    {# Determine if cart has items via related manager (cart.items) or is itself iterable #}
+    {% if cart %}
+    {# try to use cart.items.all if available, otherwise iterate cart directly #}
+    {% if cart.items %}
+    {% with items=cart.items.all %}
+    {% else %}
+    {% with items=cart %}
+    {% endif %}
+
+    {% if not items %}
+    <p class="text-gray-600">Your cart is empty.</p>
+    <a href="{% url 'store:product_list' %}"
+        class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-medium rounded-lg shadow-md hover:bg-blue-700">
+        Start Shopping
+    </a>
+    {% else %}
+    <div class="bg-white shadow-xl rounded-lg overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit
+                        Price</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total
+                        Price</th>
+                </tr>
+            </thead>
+
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for item in items %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-12 w-12">
+                                {# image: prefer item.product.image_url -> item.image_url -> placeholder #}
+                                {% if item.product and item.product.image_url %}
+                                <img class="h-12 w-12 rounded object-cover" src="{{ item.product.image_url }}"
+                                    alt="{{ item.product.name }}">
+                                {% elif item.image_url %}
+                                <img class="h-12 w-12 rounded object-cover" src="{{ item.image_url }}"
+                                    alt="{{ item.product.name|default:item.name }}">
+                                {% else %}
+                                <div
+                                    class="h-12 w-12 rounded bg-gray-100 flex items-center justify-center text-gray-400">
+                                    No Img</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900">
+                                    {# product name: prefer item.product.name -> item.name #}
+                                    {% if item.product and item.product.name %}
+                                    {{ item.product.name }}
+                                    {% else %}
+                                    {{ item.name|default:"Unnamed product" }}
+                                    {% endif %}
+                                </div>
+                                <div class="text-sm text-gray-500">
+                                    {# retailer/seller (best-effort) #}
+                                    {% if item.product and item.product.retailer %}
+                                    {% if item.product.retailer.full_name %}
+                                    Sold by: {{ item.product.retailer.full_name }}
+                                    {% else %}
+                                    Sold by: {{ item.product.retailer.email|default:item.product.retailer.username }}
+                                    {% endif %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="text-sm text-gray-900">
+                            {{ item.quantity|default:1 }}
+                        </span>
+                    </td>
+
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {# unit price: prefer item.price -> item.product.price -> display "N/A" #}
+                        <span class="text-sm text-gray-900">
+                            {% if item.price %}
+                            ₹{{ item.price|floatformat:2 }}
+                            {% elif item.product and item.product.price %}
+                            ₹{{ item.product.price|floatformat:2 }}
+                            {% else %}
+                            —
+                            {% endif %}
+                        </span>
+                    </td>
+
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="text-sm font-medium text-gray-900">
+                            {# try several total fields, fallback to "qty × unit_price" display #}
+                            {% if item.total_price %}
+                            ₹{{ item.total_price|floatformat:2 }}
+                            {% elif item.subtotal %}
+                            ₹{{ item.subtotal|floatformat:2 }}
+                            {% else %}
+                            {% comment %} compute text fallback - cannot multiply in template reliably {% endcomment %}
+                            {% if item.price %}
+                            ₹{{ item.quantity|default:1 }} × ₹{{ item.price|floatformat:2 }}
+                            {% elif item.product and item.product.price %}
+                            ₹{{ item.quantity|default:1 }} × ₹{{ item.product.price|floatformat:2 }}
+                            {% else %}
+                            —
+                            {% endif %}
+                            {% endif %}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+            <tfoot class="bg-gray-50">
+                <tr>
+                    <td colspan="3" class="px-6 py-4 text-right text-sm font-medium text-gray-700">
+                        <strong>Total:</strong>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="text-sm font-bold text-gray-900">
+                            {# try a few common cart total attributes #}
+                            {% if cart.get_total_price %}
+                            ₹{{ cart.get_total_price|floatformat:2 }}
+                            {% elif cart.total_price %}
+                            ₹{{ cart.total_price|floatformat:2 }}
+                            {% elif cart.total %}
+                            ₹{{ cart.total|floatformat:2 }}
+                            {% else %}
+                            {# fallback: sum not possible in template safely; show cart.total_items or dash #}
+                            {% if cart.total_items %}
+                            ({{ cart.total_items }} items)
+                            {% else %}
+                            —
+                            {% endif %}
+                            {% endif %}
+                        </span>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <div class="mt-8 flex justify-end">
+        <a href="{% url 'orders:checkout' %}"
+            class="px-8 py-3 bg-green-600 text-white text-lg font-medium rounded-lg shadow-md hover:bg-green-700 transition-colors">
+            Proceed to Checkout
+        </a>
+    </div>
+    {% endif %} {# end items empty check #}
+
+    {% endwith %}
+    {% else %}
+    <p class="text-gray-600">Your cart is empty.</p>
+    <a href="{% url 'store:product_list' %}"
+        class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-medium rounded-lg shadow-md hover:bg-blue-700">
+        Start Shopping
+    </a>
+    {% endif %}
+</div>
+{% endblock %}

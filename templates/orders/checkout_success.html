@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Order Placed{% endblock %}
+
+{% block content %}
+<div class="container mx-auto mt-16 max-w-2xl px-4">
+    <div class="bg-white p-10 shadow-xl rounded-2xl text-center border border-green-100">
+        <!-- Checkmark Icon -->
+        <div class="w-16 h-16 mx-auto mb-6 rounded-full bg-green-50 flex items-center justify-center">
+            <svg class="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+        </div>
+
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">
+            Order Placed Successfully!
+        </h1>
+        <p class="text-gray-600 mb-6 text-sm md:text-base">
+            Thank you for your purchase. Your order
+            <span class="font-semibold text-gray-800">#{{ order.id }}</span>
+            has been received.
+        </p>
+
+        <div class="bg-gray-50 rounded-xl px-5 py-4 text-left inline-block text-sm w-full mb-6">
+            <div class="flex justify-between">
+                <span class="text-gray-500">Payment Mode</span>
+                <span class="font-medium text-gray-900">
+                    {{ order.payment_mode }}
+                </span>
+            </div>
+            {% if order.payment_status %}
+            <div class="flex justify-between mt-2">
+                <span class="text-gray-500">Payment Status</span>
+                <span
+                    class="font-medium {% if order.payment_status == 'PAID' %}text-green-700{% else %}text-yellow-700{% endif %}">
+                    {{ order.payment_status }}
+                </span>
+            </div>
+            {% endif %}
+            <div class="flex justify-between mt-2">
+                <span class="text-gray-500">Order Date</span>
+                <span class="font-medium text-gray-900">
+                    {{ order.created_at|date:"d M Y, H:i" }}
+                </span>
+            </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3 justify-center">
+            {% if order.retailer %}
+            <a href="{% url 'store:retailer_dashboard' %}"
+                class="px-5 py-2.5 bg-cyan-600 text-white text-sm font-semibold rounded-xl shadow hover:bg-cyan-700">
+                Continue Shopping
+            </a>
+            {% else %}
+            <a href="{% url 'store:product_list' %}"
+                class="px-5 py-2.5 bg-cyan-600 text-white text-sm font-semibold rounded-xl shadow hover:bg-cyan-700">
+                Continue Shopping
+            </a>
+            {% endif %}
+            {% if order.retailer %}
+            <a href="{% url 'wholesale:order_detail' order.id %}"
+                class="px-5 py-2.5 border border-gray-300 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-50">
+                View Order Details
+            </a>
+            {% else %}
+            <a href="{% url 'orders:order_detail' order.id %}"
+                class="px-5 py-2.5 border border-gray-300 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-50">
+                View Order Details
+            </a>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+{% endblock %}

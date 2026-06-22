@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Your Cart | LocalMarket{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+    <h1 class="text-3xl font-bold text-gray-900 mb-4">Your Cart</h1>
+    <form method="GET" action="{% url 'store:view_cart' %}" class="mb-6 flex items-center gap-2">
+        <input type="text" name="q" class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm" placeholder="Search cart by product name" value="{{ search_query|default_if_none:'' }}">
+        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-cyan-500 rounded-lg hover:bg-cyan-600">Search</button>
+        {% if search_query %}
+        <a href="{% url 'store:view_cart' %}" class="text-sm text-gray-600 hover:text-cyan-600">Clear</a>
+        {% endif %}
+    </form>
+
+    {% if messages %}
+    <div class="mb-4 space-y-1">
+        {% for message in messages %}
+        <div class="px-3 py-2 text-sm rounded border
+            {% if message.tags == 'error' %} bg-red-50 text-red-700 border-red-200
+            {% elif message.tags == 'warning' %} bg-yellow-50 text-yellow-800 border-yellow-200
+            {% else %} bg-emerald-50 text-emerald-700 border-emerald-200{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if items %}
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-sm font-medium text-gray-500">Product</th>
+                    <th class="px-6 py-3 text-right text-sm font-medium text-gray-500">Price</th>
+                    <th class="px-6 py-3 text-center text-sm font-medium text-gray-500">Quantity</th>
+                    <th class="px-6 py-3 text-right text-sm font-medium text-gray-500">Subtotal</th>
+                    <th class="px-6 py-3 text-center text-sm font-medium text-gray-500">Actions</th>
+                </tr>
+            </thead>
+
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for item in items %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center space-x-4">
+                            {% if item.product and item.product.image_url %}
+                            <img src="{{ item.product.image_url }}" alt="{{ item.product.name }}"
+                                class="w-16 h-16 object-cover rounded-md">
+                            {% else %}
+                            <div
+                                class="w-16 h-16 bg-gray-100 rounded-md flex items-center justify-center text-gray-400">
+                                No image</div>
+                            {% endif %}
+                            <div>
+                                {% with raw_name=item.product.name|default:"Unnamed product" %}
+                                <div class="text-sm font-semibold text-gray-900">{{ raw_name|cut:"{"|cut:"}" }}</div>
+                                {% endwith %}
+                                <div class="text-sm text-gray-500">
+                                    Sold by:
+                                    {% if item.product and item.product.retailer and item.product.retailer.full_name %}
+                                        {{ item.product.retailer.full_name|cut:"{"|cut:"}" }}
+                                    {% elif item.product and item.product.wholesaler and item.product.wholesaler.full_name %}
+                                        {{ item.product.wholesaler.full_name|cut:"{"|cut:"}" }}
+                                    {% else %}
+                                        {{ item.product.retailer.email|default:item.product.wholesaler.email|default:"seller"|cut:"{"|cut:"}" }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                        ₹{{ item.unit_price|floatformat:2 }}
+                    </td>
+
+                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                        <form method="POST" action="{% url 'store:update_cart_item' item.id %}"
+                            class="inline-flex items-center space-x-2">
+                            {% csrf_token %}
+                            <input type="number" name="quantity" value="{{ item.quantity }}" min="1" {% if item.product and item.product.stock_quantity %}max="{{ item.product.stock_quantity }}"{% endif %}
+                                class="w-20 px-2 py-1 border rounded">
+                            <button type="submit" class="px-3 py-1 bg-cyan-500 text-white rounded">Update</button>
+                        </form>
+                    </td>
+
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                        ₹{{ item.subtotal|floatformat:2 }}
+                    </td>
+
+                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                        <form method="POST" action="{% url 'store:update_cart_item' item.id %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="quantity" value="0">
+                            <button type="submit" class="px-3 py-1 bg-red-600 text-white rounded">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="px-6 py-4 bg-gray-50 flex justify-between items-center">
+            <div class="text-sm text-gray-700">Total items: <strong>{{ cart_total_items }}</strong></div>
+            <div class="text-lg font-bold text-gray-900">Total: ₹{{ cart_total_price|floatformat:2 }}</div>
+        </div>
+
+        <div class="p-6 flex justify-end">
+            {% if user.is_authenticated and user.is_retailer %}
+            <a href="{% url 'wholesale:checkout' %}"
+               class="px-6 py-3 bg-cyan-500 text-white rounded-lg">
+                Proceed to Checkout
+            </a>
+            {% else %}
+            <a href="{% url 'orders:checkout' %}"
+               class="px-6 py-3 bg-cyan-500 text-white rounded-lg">
+                Proceed to Checkout
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% else %}
+    <div class="bg-white rounded-lg shadow p-8 text-center">
+        <p class="text-gray-600">Your cart is empty.</p>
+        <a href="{% url 'store:product_list' %}"
+            class="mt-4 inline-block px-4 py-2 bg-cyan-500 text-white rounded">Continue shopping</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

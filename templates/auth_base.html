@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Welcome to LocalMarket{% endblock %}</title>
+    <!-- Tailwind, Fonts (as in base.html) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- This body has a different layout: centered content -->
+    <div class="min-h-screen flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        
+        <!-- Logo -->
+        <a href="{% url 'landing_page' %}" class="flex items-center space-x-2 mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-cyan-500" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10.707 2.293a1 1 0 00-1.414 0L4.586 7H3a1 1 0 00-1 1v9a1 1 0 001 1h14a1 1 0 001-1V8a1 1 0 00-1-1h-1.586l-4.707-4.707zM12 18H8v-4a1 1 0 011-1h2a1 1 0 011 1v4zM11 7.414l3 3V16h-2v-4a3 3 0 00-6 0v4H4V10.414l3-3z" clip-rule="evenodd" />
+            </svg>
+            <span class="font-bold text-3xl text-gray-800">LocalMarket</span>
+        </a>
+
+        <!-- Auth Card -->
+        <div class="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+            {% block content %}
+            <!-- Auth form content will be injected here -->
+            {% endblock %}
+        </div>
+    </div>
+</body>
+</html>

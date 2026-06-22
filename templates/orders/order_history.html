@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Your Orders{% endblock %}
+
+{% block content %}
+<div class="container mx-auto mt-10 max-w-4xl px-4">
+    <h1 class="text-2xl font-bold mb-4">{{ page_title|default:"Your Orders" }}</h1>
+    {% if order_history_action_url %}
+    <form method="GET" action="{{ order_history_action_url }}" class="mb-6 flex items-center gap-2">
+    {% else %}
+    <form method="GET" action="{% url 'orders:order_history' %}" class="mb-6 flex items-center gap-2">
+    {% endif %}
+        <input type="text" name="q" class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm" placeholder="{{ search_placeholder|default:"Search by product name" }}" value="{{ search_query|default_if_none:'' }}">
+        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-cyan-500 rounded-lg hover:bg-cyan-600">Search</button>
+        {% if search_query %}
+        {% if order_history_action_url %}
+        <a href="{{ order_history_action_url }}" class="text-sm text-gray-600 hover:text-cyan-600">Clear</a>
+        {% else %}
+        <a href="{% url 'orders:order_history' %}" class="text-sm text-gray-600 hover:text-cyan-600">Clear</a>
+        {% endif %}
+        {% endif %}
+    </form>
+
+    {% if orders %}
+    <div class="space-y-4">
+        {% for o in orders %}
+        <div class="bg-white p-4 rounded-2xl shadow-sm border hover:shadow-md transition">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    {% if o.thumbnail %}
+                    {% if o.first_product_id %}
+                    <a href="{% url 'store:product_detail' o.first_product_id %}"
+                        class="block w-14 h-14 rounded-md overflow-hidden border">
+                        <img src="{{ o.thumbnail }}" alt="{{ o.first_item_name }}" class="w-full h-full object-cover" />
+                    </a>
+                    {% else %}
+                    <div class="w-14 h-14 rounded-md overflow-hidden border">
+                        <img src="{{ o.thumbnail }}" alt="{{ o.first_item_name }}" class="w-full h-full object-cover" />
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div
+                        class="w-14 h-14 bg-gray-100 rounded-md border flex items-center justify-center text-xs text-gray-400">
+                        No image
+                    </div>
+                    {% endif %}
+
+                    <div>
+                        {% if ordered_by_mode and o.retailer_name %}
+                        <div class="font-medium">Order #{{ o.id }} — ({{ o.retailer_name }})</div>
+                        {% if o.proxy_wholesalers %}
+                        <div class="mt-1 text-xs text-gray-600">Proxy: <span class="font-medium">{{ o.proxy_wholesalers }}</span></div>
+                        {% endif %}
+                        {% else %}
+                        <div class="font-medium">Order #{{ o.id }} — {{ o.item_names|default:"Items" }}</div>
+                        {% endif %}
+                        <div class="text-sm text-gray-500">
+                            {{ o.created_at|date:"d M Y, H:i" }} • {{ o.item_count }} item{{ o.item_count|pluralize }}
+                            {% if o.retailer_name %} • Ordered by: <span class="font-medium">{{ o.retailer_name }}</span>{% endif %}
+                            {% if o.customer_email %} • Email: <span class="font-medium">{{ o.customer_email }}</span>{% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <div class="text-right mr-2">
+                        <div class="text-sm text-gray-500">Total</div>
+                        <div class="font-semibold">₹{{ o.total|floatformat:2 }}</div>
+                    </div>
+
+                    {% if o.display_payment_status %}
+                    {% if o.display_payment_status == "COMPLETED" %}
+                    <span class="px-3 py-1 rounded-full bg-green-50 text-green-700 text-xs font-semibold">
+                        {{ o.display_payment_status }}
+                    </span>
+                    {% elif o.display_payment_status == "CANCELLED" %}
+                    <span class="px-3 py-1 rounded-full bg-red-50 text-red-700 text-xs font-semibold">
+                        {{ o.display_payment_status }}
+                    </span>
+                    {% elif o.display_payment_status == "FAILED" %}
+                    <span class="px-3 py-1 rounded-full bg-red-50 text-red-700 text-xs font-semibold">
+                        {{ o.display_payment_status }}
+                    </span>
+                    {% else %}
+                    <span class="px-3 py-1 rounded-full bg-yellow-50 text-yellow-700 text-xs font-semibold">
+                        {{ o.display_payment_status }}
+                    </span>
+                    {% endif %}
+                    {% elif o.payment_status %}
+                    {% if o.payment_status == "PAID" %}
+                    <span class="px-3 py-1 rounded-full bg-green-50 text-green-700 text-xs font-semibold">
+                        {{ o.payment_status }}
+                    </span>
+                    {% elif o.payment_status == "FAILED" %}
+                    <span class="px-3 py-1 rounded-full bg-red-50 text-red-700 text-xs font-semibold">
+                        {{ o.payment_status }}
+                    </span>
+                    {% else %}
+                    <span class="px-3 py-1 rounded-full bg-yellow-50 text-yellow-700 text-xs font-semibold">
+                        {{ o.payment_status }}
+                    </span>
+                    {% endif %}
+                    
+                    {% elif o.status %}
+                    {% if o.status == "CANCELLED" %}
+                    <span class="px-3 py-1 rounded-full bg-red-50 text-red-700 text-xs font-semibold">
+                        {{ o.status }}
+                    </span>
+                    {% elif o.status == "PENDING" %}
+                    <span class="px-3 py-1 rounded-full bg-yellow-50 text-yellow-700 text-xs font-semibold">
+                        {{ o.status }}
+                    </span>
+                    {% elif o.status == "CONFIRMED" or o.status == "PROCESSING" %}
+                    <span class="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold">
+                        {{ o.status }}
+                    </span>
+                    {% else %}
+                    <span class="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-semibold">
+                        {{ o.status }}
+                    </span>
+                    {% endif %}
+
+                    {% else %}
+                    <span class="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-semibold">Status</span>
+                    {% endif %}
+
+
+
+                    {% if order_detail_url_name %}
+                    <a href="{% url order_detail_url_name o.id %}"
+                        class="inline-flex items-center px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
+                        View
+                    </a>
+                    {% else %}
+                    <a href="{% url 'orders:order_detail' o.id %}"
+                        class="inline-flex items-center px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
+                        View
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white p-6 rounded-2xl shadow-sm border text-center text-gray-600">
+        {{ empty_message|default:"You haven't placed any orders yet." }}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

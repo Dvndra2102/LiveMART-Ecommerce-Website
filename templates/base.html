@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- livemart-v2 -->
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>{% block title %}LiveMART{% endblock %}</title>
+
+    <!-- Tailwind + Alpine -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* small badge flash */
+        .flash-anim {
+            animation: flash 0.45s ease;
+        }
+
+        @keyframes flash {
+            0% {
+                transform: scale(1)
+            }
+
+            50% {
+                transform: scale(1.08)
+            }
+
+            100% {
+                transform: scale(1)
+            }
+        }
+
+        /* Toast styles */
+        .lm-toast {
+            position: fixed;
+            top: 1.25rem;
+            left: 50%;
+            transform: translateX(-50%);
+            min-width: 260px;
+            max-width: calc(100% - 2rem);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            padding: .75rem 1rem;
+            border-radius: .75rem;
+            box-shadow: 0 10px 24px rgba(2, 6, 23, 0.25);
+            color: #fff;
+            font-weight: 500;
+            animation: lm-toast-in .18s ease;
+        }
+
+        @keyframes lm-toast-in {
+            from {
+                transform: translateX(-50%) translateY(-6px) scale(.98);
+                opacity: 0
+            }
+
+            to {
+                transform: translateX(-50%) translateY(0) scale(1);
+                opacity: 1
+            }
+        }
+
+        .lm-toast--success {
+            background: linear-gradient(90deg, #059669, #10b981);
+        }
+
+        .lm-toast--error {
+            background: linear-gradient(90deg, #dc2626, #ef4444);
+        }
+
+        .lm-toast--info {
+            background: linear-gradient(90deg, #0ea5e9, #0284c7);
+        }
+        .lm-toast .icon-pill, .lm-toast .close-pill {
+            width: 28px;
+            height: 28px;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.16);
+        }
+        .lm-toast .close-pill {
+            cursor: pointer;
+            color: #fff;
+        }
+
+        /* Shake animation */
+        @keyframes lm-shake {
+            0% {
+                transform: translateX(0)
+            }
+
+            20% {
+                transform: translateX(-6px)
+            }
+
+            40% {
+                transform: translateX(6px)
+            }
+
+            60% {
+                transform: translateX(-4px)
+            }
+
+            80% {
+                transform: translateX(4px)
+            }
+
+            100% {
+                transform: translateX(0)
+            }
+        }
+
+        .lm-shake {
+            animation: lm-shake 0.6s cubic-bezier(.36, .07, .19, .97);
+            backface-visibility: hidden;
+            transform-origin: center;
+        }
+
+        /* small cart controls */
+        .qty-control {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            background: transparent;
+            border-radius: .375rem;
+        }
+
+        .qty-btn {
+            border: 1px solid #e5e7eb;
+            background: #fff;
+            padding: .25rem .5rem;
+            cursor: pointer;
+            border-radius: .375rem;
+        }
+
+        .qty-num {
+            min-width: 2.2rem;
+            text-align: center;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .remove-btn {
+            background: transparent;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            font-weight: 600;
+            padding: .25rem .5rem;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-800">
+    <!-- Alpine root -->
+    <div x-data="{ cartOpen: false }">
+        <!-- Nav -->
+        <nav class="bg-white shadow-sm sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16 items-center">
+                    <!-- Logo -->
+                    <div class="flex-shrink-0 flex items-center">
+                        <a href="{% url 'landing_page' %}" class="flex items-center space-x-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-cyan-500" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M10.707 2.293a1 1 0 00-1.414 0L4.586 7H3a1 1 0 00-1 1v9a1 1 0 001 1h14a1 1 0 001-1V8a1 1 0 00-1-1h-1.586l-4.707-4.707zM12 18H8v-4a1 1 0 011-1h2a1 1 0 011 1v4zM11 7.414l3 3V16h-2v-4a3 3 0 00-6 0v4H4V10.414l3-3zM10 4.414l4 4V10a1 1 0 11-2 0V9.414l-2-2-2 2V10a1 1 0 11-2 0V8.414l4-4z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                            <span class="font-bold text-xl text-gray-800">LiveMART</span>
+                        </a>
+                    </div>
+
+                    <!-- Center Search -->
+                    <div class="flex-1 px-4 hidden md:flex justify-center">
+                        {% if request.resolver_match and request.resolver_match.url_name == 'account_signup' %}
+                            {# Hide global search on signup page #}
+                        {% else %}
+                            {% if user.is_authenticated and user.is_retailer %}
+                            {% elif user.is_authenticated and user.is_wholesaler and not hide_global_search %}
+                            <form method="GET" action="{% url 'wholesale:wholesaler_dashboard' %}" class="w-full max-w-xl flex items-center gap-2" id="global-search-form">
+                                <div class="relative flex-1">
+                                    <input type="text" name="q" id="global-search" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" placeholder="Search your wholesale products" value="{{ search_query|default_if_none:'' }}" autocomplete="off">
+                                </div>
+                                <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-cyan-500 rounded-lg hover:bg-cyan-600">Search</button>
+                                <a href="{% url 'wholesale:wholesaler_dashboard' %}" class="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Clear</a>
+                            </form>
+                            {% else %}
+                            {% if not user.is_wholesaler %}
+                            <form method="GET" action="{% url 'store:product_list' %}" class="w-full max-w-xl flex items-center gap-2" id="global-search-form">
+                                <div class="relative flex-1">
+                                    <input type="text" name="q" id="global-search" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" placeholder="Search products" value="{{ search_query|default_if_none:'' }}" autocomplete="off">
+                                    <div id="global-search-history" class="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 hidden"></div>
+                                </div>
+                                {% if search_pincode %}
+                                <input type="hidden" name="pincode" value="{{ search_pincode }}">
+                                {% endif %}
+                                <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-cyan-500 rounded-lg hover:bg-cyan-600">Search</button>
+                                {% if search_pincode %}
+                                <a href="{% url 'store:product_list' %}?pincode={{ search_pincode }}" class="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Clear</a>
+                                {% else %}
+                                <a href="{% url 'store:product_list' %}" class="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Clear</a>
+                                {% endif %}
+                            </form>
+                            {% endif %}
+                            {% endif %}
+                        {% endif %}
+                    </div>
+
+                    <!-- Links + Cart + Profile -->
+                    <div class="flex items-center">
+                        {% if user.is_authenticated %}
+                        {% if user.is_wholesaler %}
+                        <a href="{% url 'dashboard_redirect' %}"
+                            class="inline-flex items-center px-3 py-2 rounded-lg bg-cyan-500 text-white text-sm font-medium hover:bg-cyan-600 mr-3">Dashboard</a>
+                        <a href="{% url 'users:queries' %}"
+                            class="inline-flex items-center px-3 py-2 rounded-lg bg-cyan-500 text-white text-sm font-medium hover:bg-cyan-600 mr-3">Queries</a>
+                        <a href="{% url 'wholesale:ordered_by' %}"
+                            class="inline-flex items-center px-3 py-2 rounded-lg bg-cyan-500 text-white text-sm font-medium hover:bg-cyan-600 mr-3">Ordered By</a>
+                        {% elif user.is_retailer %}
+                        <a href="{% url 'dashboard_redirect' %}"
+                            class="inline-flex items-center px-3 py-2 rounded-lg bg-cyan-500 text-white text-sm font-medium hover:bg-cyan-600 mr-3">Dashboard</a>
+                        <a href="{% url 'users:queries' %}"
+                            class="inline-flex items-center px-3 py-2 rounded-lg bg-cyan-500 text-white text-sm font-medium hover:bg-cyan-600 mr-3">Queries</a>
+                        <a href="{% url 'store:ordered_by_retailer' %}"
+                            class="inline-flex items-center px-3 py-2 rounded-lg bg-cyan-500 text-white text-sm font-medium hover:bg-cyan-600 mr-3">Ordered By</a>
+                        {% else %}
+                        <a href="{% url 'dashboard_redirect' %}"
+                            class="inline-flex items-center px-3 py-2 rounded-lg bg-cyan-500 text-white text-sm font-medium hover:bg-cyan-600 mr-3">Dashboard</a>
+                        <a href="{% url 'users:queries' %}"
+                            class="inline-flex items-center px-3 py-2 rounded-lg bg-cyan-500 text-white text-sm font-medium hover:bg-cyan-600 mr-3">Queries</a>
+                        {% endif %}
+
+                        {% if not user.is_wholesaler %}
+                        <a href="{% url 'store:alerts' %}" class="relative mr-4 text-gray-700 hover:text-cyan-500 focus:outline-none" aria-label="Notifications">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0a3 3 0 11-6 0m6 0H9" />
+                            </svg>
+                        </a>
+                        <button @click="cartOpen = true"
+                            class="relative mr-4 text-gray-700 hover:text-cyan-500 focus:outline-none"
+                            aria-label="Open cart sidebar">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" role="img" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9m-6-9v9" />
+                            </svg>
+                            <span id="cart-badge"
+                                class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold h-5 w-5 rounded-full flex items-center justify-center"
+                                style="display:none">0</span>
+                        </button>
+                        {% endif %}
+
+
+                        <!-- Profile dropdown -->
+
+                        <div x-data="{ open: false }" class="relative">
+                            <button @click="open = !open" :aria-expanded="open" aria-haspopup="true"
+                                class="flex items-center space-x-3 focus:outline-none" title="Account">
+                                <!-- avatar -->
+                                <div
+                                    class="h-9 w-9 rounded-full bg-gradient-to-br from-cyan-400 to-teal-400 flex items-center justify-center text-white font-semibold">
+                                    {{ user.get_full_name|default:user.username|default:""|slice:":1"|upper }}
+                                </div>
+
+                                <!-- small caret (optional) -->
+                                <svg class="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor"
+                                    aria-hidden="true">
+                                    <path fill-rule="evenodd"
+                                        d="M5.23 7.21a.75.75 0 011.06.02L10 11.293l3.71-4.06a.75.75 0 111.12 1.0l-4.3 4.71a.75.75 0 01-1.08 0L5.25 8.27a.75.75 0 01-.02-1.06z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </button>
+
+                            <!-- dropdown -->
+                            <div x-show="open" @click.away="open = false" x-transition x-cloak
+                                class="origin-top-right absolute right-0 mt-2 w-64 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10"
+                                role="menu" aria-orientation="vertical" aria-label="Account menu">
+
+                                <!-- header -->
+
+                                <div class="px-4 py-3 border-b">
+                                    <div class="flex items-center gap-3">
+
+                                        <!-- Avatar -->
+                                        <div class="h-12 w-12 rounded-full bg-gradient-to-br from-cyan-400 to-teal-400
+                flex items-center justify-center text-white text-lg font-semibold">
+                                            {{ user.full_name|default:user.username|default:""|slice:":1"|upper }}
+                                        </div>
+
+                                        <!-- Name + email -->
+                                        <div class="min-w-0">
+                                            <div class="text-sm font-semibold text-gray-800 truncate">
+                                                {{ user.full_name|default:user.username|default:"" }}{% if user.pincode %} • {{ user.pincode }}{% endif %}
+                                            </div>
+                                            <div class="text-xs text-gray-500 truncate">
+                                                {{ user.email }}
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+
+
+                                <!-- actions -->
+                                <div class="py-1">
+                                    {% if not user.is_wholesaler %}
+                                    <a href="{% url 'store:view_cart' %}"
+                                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                        role="menuitem">My Cart</a>
+                                    {% if user.is_retailer %}
+                                    <a href="{% url 'wholesale:order_history' %}"
+                                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">
+                                        My Orders
+                                    </a>
+                                    {% else %}
+                                    <a href="{% url 'orders:order_history' %}"
+                                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">
+                                        My Orders
+                                    </a>
+                                    {% endif %}
+                                    {% endif %}
+                                    <a href="{% url 'account_change_password' %}"
+                                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                        role="menuitem">Change Password</a>
+                                    <a href="{% url 'users:change_credentials' %}"
+                                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                        role="menuitem">Change Credentials</a>
+                                </div>
+
+                                <div class="border-t"></div>
+
+                                <div class="p-3">
+                                    <form action="{% url 'account_logout' %}" method="post" class="m-0">
+                                        {% csrf_token %}
+                                        <button type="submit"
+                                            class="w-full inline-flex justify-center items-center px-3 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700">
+                                            Sign out
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+
+
+                        {% else %}
+                        {% if request.resolver_match and request.resolver_match.url_name == 'account_signup' %}
+                            <a href="{% url 'landing_page' %}"
+                               class="px-4 py-2 text-sm font-medium text-white bg-cyan-500 rounded-lg hover:bg-cyan-600">Back to home page</a>
+                        {% else %}
+                            <a href="{% url 'account_login' %}"
+                                class="text-sm font-medium text-gray-700 hover:text-cyan-500 mr-4">Sign In</a>
+                            <a href="{% url 'account_signup' %}"
+                                class="px-4 py-2 text-sm font-medium text-white bg-cyan-500 rounded-lg hover:bg-cyan-600">Create
+                                Your Account</a>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+
+        {% if not user.is_authenticated or not user.is_wholesaler %}
+        <div x-show="cartOpen" x-cloak x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 transform translate-x-4"
+            x-transition:enter-end="opacity-100 transform translate-x-0"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100 transform translate-x-0"
+            x-transition:leave-end="opacity-0 transform translate-x-4"
+            class="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-white shadow-xl border-l border-gray-200 overflow-y-auto"
+            role="dialog" aria-modal="true">
+            <div class="p-4 flex items-start justify-between border-b border-gray-100">
+                <h3 class="text-lg font-semibold">Your Cart</h3>
+                <div class="flex items-center space-x-2">
+                    <p class="text-sm text-gray-600">Total: <strong id="cart-total-price">₹0.00</strong></p>
+                    <button @click="cartOpen = false" aria-label="Close cart" class="text-gray-500 hover:text-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-4">
+                <div id="cart-empty" class="text-center py-12 text-gray-500">Your cart is empty.</div>
+
+                <ul id="cart-items-list" class="space-y-4" style="display:none;"></ul>
+
+                <div id="cart-summary" class="mt-6 border-t pt-4" style="display:none;">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="text-sm text-gray-600">Items: <strong id="cart-total-items">0</strong></div>
+                        <div class="text-lg font-semibold">Total ₹<span id="cart-total-price-plain">0.00</span></div>
+                    </div>
+
+                    <div class="flex space-x-3">
+                        <a id="proceed-to-checkout" href="{% url 'store:view_cart' %}"
+                            class="flex-1 text-center px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600"
+                            @click="cartOpen = false">Proceed to Checkout</a>
+                        <a href="/"
+                            class="flex-1 text-center px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50"
+                            @click="cartOpen = false">Continue Shopping</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div x-show="cartOpen" x-cloak @click="cartOpen = false" class="fixed inset-0 bg-black bg-opacity-25 z-40"
+            x-transition.opacity></div>
+        {% endif %}
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-16">
+        <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 text-center text-gray-500 text-sm">
+            &copy; 2025 LiveMART. All rights reserved.
+            <div class="mt-2">Project by Supreeth Samantula, Pranith Mahanti, Kakarla Dheeraj and Yashavanth A N</div>
+        </div>
+    </footer>
+
+    <!-- Client-side: full script (add/update snapshot, toasts, shake, qty controls) -->
+    <script>
+        // small helpers
+        function escapeHtml(str) {
+            if (!str) return "";
+            return String(str).replace(/[&<>"'`=\/]/g, function (s) {
+                return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;' })[s];
+            });
+        }
+        function formatCurrencyINR(n) {
+            return parseFloat(n || 0).toFixed(2);
+        }
+
+        /* ============================
+           Toast & UI helpers
+           ============================ */
+        function showToast(message, opts = {}) {
+            const { type = "info", duration = 4000 } = opts;
+            const toast = document.createElement("div");
+            toast.className = "lm-toast lm-toast--" + (type === "error" ? "error" : type === "success" ? "success" : "info");
+            toast.setAttribute("role", "status");
+            toast.setAttribute("aria-live", "polite");
+
+            const icon = {
+                success: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="color:rgba(255,255,255,0.92)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`,
+                error: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="color:rgba(255,255,255,0.92)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>`,
+                info: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="color:rgba(255,255,255,0.92)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z"/></svg>`
+            }[type] || "";
+
+            toast.innerHTML = `
+            <div class="flex items-center gap-3 w-full">
+              <div class="icon-pill">${icon}</div>
+              <div class="flex-1 text-sm">${escapeHtml(message)}</div>
+              <button class="close-pill" aria-label="Dismiss">&times;</button>
+            </div>
+        `;
+
+            document.body.appendChild(toast);
+
+            // close handler
+            const closeBtn = toast.querySelector("button.close-pill");
+            const remove = () => { if (toast.parentNode) toast.parentNode.removeChild(toast); };
+            closeBtn.addEventListener("click", remove);
+
+            // auto remove after duration
+            setTimeout(() => {
+                try { remove(); } catch (e) { }
+            }, duration);
+        }
+
+        function applyShake(el) {
+            if (!el) return;
+            el.classList.add('lm-shake');
+            setTimeout(() => el.classList.remove('lm-shake'), 600);
+            const card = el.closest('.flex.flex-col');
+            if (card) {
+                card.classList.add('lm-shake');
+                setTimeout(() => card.classList.remove('lm-shake'), 600);
+            }
+        }
+
+        /* ============================
+           Render helpers
+           ============================ */
+
+        function renderCartItem(item) {
+            const li = document.createElement("li");
+            li.className = "flex items-start space-x-3";
+            li.setAttribute("data-item-id", item.id || "");
+
+            const imgSrc = item.image_url && item.image_url.trim() ? escapeHtml(item.image_url) : '/static/img/no-image.png';
+
+            li.innerHTML = `
+      <div class="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-md overflow-hidden flex items-center justify-center">
+        <img src="${imgSrc}" alt="${escapeHtml(item.title)}" class="w-full h-full object-cover">
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="flex justify-between">
+          <h4 class="font-medium text-gray-800 truncate">${escapeHtml(item.title)}</h4>
+          <div class="text-sm text-gray-700 cart-item-subtotal">₹${formatCurrencyINR(item.subtotal)}</div>
+        </div>
+        <div class="mt-1 text-sm text-gray-500">
+          Qty: <span class="cart-item-qty">${item.quantity}</span> &middot; ₹${formatCurrencyINR(item.unit_price)} each
+        </div>
+        <div class="mt-2 flex items-center justify-between">
+          <div class="text-xs text-gray-500"> </div>
+          <div class="flex items-center gap-2">
+            <div class="qty-control" data-item-id="${item.id}">
+              <button class="qty-btn qty-decrease" aria-label="Decrease quantity" data-item-id="${item.id}">−</button>
+              <div class="qty-num" data-item-id="${item.id}">${item.quantity}</div>
+              <button class="qty-btn qty-increase" aria-label="Increase quantity" data-item-id="${item.id}">+</button>
+            </div>
+            <button class="remove-btn" data-item-id="${item.id}" aria-label="Remove item">Remove</button>
+          </div>
+        </div>
+      </div>
+    `;
+            return li;
+        }
+
+        function populateCartSnapshot(snapshot) {
+            const badge = document.getElementById("cart-badge");
+            const itemsList = document.getElementById("cart-items-list");
+            const empty = document.getElementById("cart-empty");
+            const summary = document.getElementById("cart-summary");
+            const totalPriceLabel = document.getElementById("cart-total-price");
+            const totalPricePlain = document.getElementById("cart-total-price-plain");
+            const totalItemsEl = document.getElementById("cart-total-items");
+
+            const count = snapshot.cart_total_items || 0;
+            if (badge) {
+                badge.textContent = count;
+                badge.style.display = count > 0 ? "flex" : "none";
+            }
+
+            itemsList.innerHTML = "";
+
+            if (!snapshot.cart_items || snapshot.cart_items.length === 0) {
+                empty.style.display = "";
+                itemsList.style.display = "none";
+                summary.style.display = "none";
+                if (totalPriceLabel) totalPriceLabel.textContent = "₹0.00";
+                if (totalPricePlain) totalPricePlain.textContent = "0.00";
+                if (totalItemsEl) totalItemsEl.textContent = "0";
+                return;
+            }
+
+            snapshot.cart_items.forEach(it => {
+                itemsList.appendChild(renderCartItem(it));
+            });
+
+            empty.style.display = "none";
+            itemsList.style.display = "";
+            summary.style.display = "";
+
+            if (totalPriceLabel) totalPriceLabel.textContent = "₹" + formatCurrencyINR(snapshot.cart_total_price);
+            if (totalPricePlain) totalPricePlain.textContent = formatCurrencyINR(snapshot.cart_total_price);
+            if (totalItemsEl) totalItemsEl.textContent = snapshot.cart_total_items || snapshot.cart_items.reduce((s, i) => s + i.quantity, 0);
+        }
+
+        /* ============================
+           Snapshot fetch
+           ============================ */
+        function fetchCartSnapshot() {
+            fetch("{% url 'store:cart_summary' %}", {
+                method: "GET",
+                headers: { "X-Requested-With": "XMLHttpRequest" },
+                credentials: "same-origin"
+            })
+                .then(r => r.json())
+                .then(data => populateCartSnapshot(data))
+                .catch(err => console.error("Failed to fetch cart summary:", err));
+        }
+
+        function getCSRFToken() {
+            const m = document.cookie.match(/(^|;)\s*csrftoken=([^;]+)/);
+            if (m) return m[2];
+            const meta = document.querySelector('meta[name="csrf-token"]');
+            return meta ? meta.content : '';
+        }
+
+        /* ============================
+           Add-to-cart handler (AJAX)
+           ============================ */
+        document.addEventListener("click", function (e) {
+            const btn = e.target.closest && e.target.closest(".add-to-cart-btn");
+            if (!btn) return;
+
+            e.preventDefault();
+
+            const productId = btn.dataset.productId;
+            if (!productId) return console.warn("add-to-cart button missing data-product-id");
+
+            // quantity
+            let qty = 1;
+            if (btn.dataset.quantity) qty = parseInt(btn.dataset.quantity) || 1;
+            else {
+                const maybeInput = btn.closest("form") ? btn.closest("form").querySelector("input[name='quantity']") : document.querySelector(`input[data-qty-for='${productId}']`);
+                if (maybeInput) qty = parseInt(maybeInput.value) || 1;
+            }
+
+            // client-side stock guard (UX)
+            const maxAttr = btn.getAttribute('data-max');
+            const max = (maxAttr !== null && maxAttr !== undefined && maxAttr !== "") ? parseInt(maxAttr, 10) : null;
+            if (max !== null) {
+                if (max === 0) {
+                    applyShake(btn);
+                    showToast("This product is out of stock.", { type: "error", duration: 3000 });
+                    return;
+                }
+                if (qty > max) {
+                    applyShake(btn);
+                    showToast(`Only ${max} units available.`, { type: "error", duration: 3500 });
+                    return;
+                }
+            }
+
+            const url = btn.getAttribute("data-url") || `/store/cart/add/${productId}/`;
+            const formData = new FormData();
+            formData.append("quantity", qty);
+
+            // CSRF token
+            const csrftoken = getCSRFToken();
+
+            // Disable button briefly to avoid double-clicks & show spinner state
+            btn.disabled = true;
+            const origText = btn.innerHTML;
+            btn.innerHTML = '<span class="opacity-80">Adding…</span>';
+
+            fetch(url, {
+                method: "POST",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                    "X-CSRFToken": csrftoken || ""
+                },
+                body: formData,
+                credentials: "same-origin"
+            })
+                .then(resp => {
+                    if (!resp.ok) return resp.text().then(text => { throw new Error(text || 'Add to cart failed'); });
+                    return resp.json();
+                })
+                .then(data => {
+                    if (!data || !data.ok) {
+                        if (data && data.message) {
+                            applyShake(btn);
+                            showToast(data.message, { type: "error" });
+                        } else {
+                            showToast("Could not add to cart.", { type: "error" });
+                        }
+                        return;
+                    }
+
+                    // update badge and totals quickly using response
+                    const badge = document.getElementById("cart-badge");
+                    if (badge) {
+                        badge.textContent = data.total_items;
+                        badge.style.display = (parseInt(data.total_items) > 0) ? "flex" : "none";
+                        badge.classList.add("flash-anim");
+                        setTimeout(() => badge.classList.remove("flash-anim"), 350);
+                    }
+
+                    const totalPriceEl = document.getElementById("cart-total-price");
+                    const totalPricePlain = document.getElementById("cart-total-price-plain");
+                    const totalItemsEl = document.getElementById("cart-total-items");
+                    if (totalPriceEl) totalPriceEl.textContent = "₹" + formatCurrencyINR(data.total_price);
+                    if (totalPricePlain) totalPricePlain.textContent = formatCurrencyINR(data.total_price);
+                    if (totalItemsEl) totalItemsEl.textContent = data.total_items;
+
+                    // update sidebar DOM: add or update item
+                    const itemsList = document.getElementById("cart-items-list");
+                    if (itemsList && data.item) {
+                        const item = data.item;
+                        let li = itemsList.querySelector(`[data-item-id="${item.id}"]`);
+                        if (li) {
+                            const qtyEl = li.querySelector(".cart-item-qty");
+                            if (qtyEl) qtyEl.textContent = item.quantity;
+                            const subtotalEl = li.querySelector(".cart-item-subtotal");
+                            if (subtotalEl) subtotalEl.textContent = "₹" + formatCurrencyINR(item.subtotal);
+                            const qtyNum = li.querySelector(".qty-num");
+                            if (qtyNum) qtyNum.textContent = item.quantity;
+                        } else {
+                            // ensure image_url exists on item (may be empty from server); try to read button data-image as hint
+                            if (!item.image_url || item.image_url.trim() === "") {
+                                const btnImage = btn.getAttribute('data-image') || '';
+                                if (btnImage) item.image_url = btnImage;
+                            }
+                            itemsList.prepend(renderCartItem(item));
+                            // ensure summary/empty states visible
+                            document.getElementById("cart-empty").style.display = "none";
+                            itemsList.style.display = "";
+                            document.getElementById("cart-summary").style.display = "";
+                        }
+                    }
+
+                    // friendly success toast
+                    showToast("Added to cart", { type: "success", duration: 1800 });
+                })
+                .catch(err => {
+                    console.error("Error adding to cart", err);
+                    const text = err && err.message ? err.message : "Error adding to cart";
+                    applyShake(btn);
+                    showToast(text, { type: "error", duration: 4000 });
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = origText;
+                    // refresh full snapshot to keep everything consistent (server is source of truth)
+                    setTimeout(fetchCartSnapshot, 350);
+                });
+        });
+
+        /* ============================
+           Update item (increase, decrease, remove)
+           ============================ */
+        function updateUrl(itemId) { return `/store/cart/update/${itemId}/`; }
+
+        async function performUpdateItem(itemId, newQty, triggerEl) {
+            const url = updateUrl(itemId);
+            const form = new FormData();
+            form.append('quantity', String(newQty || 0));
+
+            if (triggerEl) triggerEl.disabled = true;
+
+            try {
+                const resp = await fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest",
+                        "X-CSRFToken": getCSRFToken() || ""
+                    },
+                    credentials: "same-origin",
+                    body: form
+                });
+
+                if (!resp.ok) {
+                    const text = await resp.text().catch(() => null);
+                    applyShake(triggerEl || document.querySelector(`[data-item-id="${itemId}"]`));
+                    showToast(text || 'Could not update item', { type: 'error' });
+                    await fetchCartSnapshot();
+                    return null;
+                }
+
+                const data = await resp.json();
+                if (data && (data.total_items !== undefined || data.total_price !== undefined)) {
+                    const badge = document.getElementById('cart-badge');
+                    if (badge && data.total_items !== undefined) { badge.textContent = data.total_items; badge.style.display = data.total_items > 0 ? 'flex' : 'none'; }
+                    if (document.getElementById('cart-total-price')) document.getElementById('cart-total-price').textContent = '₹' + formatCurrencyINR(data.total_price || 0);
+                    if (document.getElementById('cart-total-price-plain')) document.getElementById('cart-total-price-plain').textContent = formatCurrencyINR(data.total_price || 0);
+                    if (document.getElementById('cart-total-items')) document.getElementById('cart-total-items').textContent = data.total_items || 0;
+                }
+
+                await fetchCartSnapshot();
+                return data;
+            } catch (err) {
+                console.error('Update item failed', err);
+                applyShake(triggerEl || document.querySelector(`[data-item-id="${itemId}"]`));
+                showToast('Network error while updating cart', { type: 'error' });
+                await fetchCartSnapshot();
+                return null;
+            } finally {
+                if (triggerEl) triggerEl.disabled = false;
+            }
+        }
+
+        // Event delegation: handle +/- and remove clicks for items inside the sidebar
+        document.addEventListener('click', function (e) {
+            const inc = e.target.closest && e.target.closest('.qty-increase');
+            const dec = e.target.closest && e.target.closest('.qty-decrease');
+            const remove = e.target.closest && e.target.closest('.remove-btn');
+
+            if (inc || dec || remove) {
+                e.preventDefault();
+
+                const target = inc || dec || remove;
+                const itemId = target.getAttribute('data-item-id');
+                if (!itemId) return;
+
+                const li = document.querySelector(`#cart-items-list [data-item-id="${itemId}"]`) || document.querySelector(`[data-item-id="${itemId}"]`);
+                const qtyNum = li ? li.querySelector('.qty-num') : null;
+                let currentQty = qtyNum ? parseInt(qtyNum.textContent, 10) || 0 : null;
+
+                if (remove) {
+                    applyShake(target);
+                    performUpdateItem(itemId, 0, target);
+                    return;
+                }
+
+                if (inc) {
+                    const newQty = (currentQty === null) ? 1 : currentQty + 1;
+                    if (qtyNum) qtyNum.textContent = newQty;
+                    if (li) {
+                        const visibleQtyLabel = li.querySelector('.cart-item-qty');
+                        if (visibleQtyLabel) visibleQtyLabel.textContent = newQty;
+                    }
+                    performUpdateItem(itemId, newQty, target).then(result => { });
+                    return;
+                }
+
+                if (dec) {
+                    const newQty = (currentQty === null) ? 0 : Math.max(0, currentQty - 1);
+                    if (qtyNum) qtyNum.textContent = newQty;
+                    if (li) {
+                        const visibleQtyLabel = li.querySelector('.cart-item-qty');
+                        if (visibleQtyLabel) visibleQtyLabel.textContent = newQty;
+                    }
+                    performUpdateItem(itemId, newQty, target).then(result => { });
+                    return;
+                }
+            }
+        });
+
+        // initialize on load
+        document.addEventListener("DOMContentLoaded", function () {
+            fetchCartSnapshot();
+
+            var form = document.getElementById('global-search-form');
+            var input = document.getElementById('global-search');
+            var box = document.getElementById('global-search-history');
+            var key = 'lm_search_history';
+            function getH(){ try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch(e){ return []; } }
+            function setH(arr){ try { localStorage.setItem(key, JSON.stringify(arr.slice(0,10))); } catch(e){} }
+            function addTerm(v){ var t = String(v||'').trim(); if(!t) return; var list = getH().filter(function(x){ return String(x).trim() !== t; }); list.unshift(t); setH(list); }
+            function render(filter){ if(!box) return; var data = getH(); if(filter){ var f = String(filter).toLowerCase(); data = data.filter(function(x){ return String(x).toLowerCase().indexOf(f) !== -1; }); } box.innerHTML=''; if(!data.length){ box.classList.add('hidden'); return; } var frag = document.createDocumentFragment(); data.slice(0,10).forEach(function(item){ var row = document.createElement('div'); row.className='flex items-center justify-between px-3 py-2 hover:bg-gray-50 cursor-pointer'; var span=document.createElement('span'); span.className='text-sm text-gray-700'; span.textContent=item; var del=document.createElement('button'); del.type='button'; del.className='text-xs px-2 py-1 rounded bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-600'; del.textContent='Delete'; del.addEventListener('click', function(e){ e.stopPropagation(); var list=getH().filter(function(x){ return x!==item; }); setH(list); render(filter); }); row.addEventListener('click', function(){ if(input){ input.value=item; input.focus(); } box.classList.add('hidden'); }); row.appendChild(span); row.appendChild(del); frag.appendChild(row); }); box.appendChild(frag); box.classList.remove('hidden'); }
+            if(input){ input.addEventListener('focus', function(){ render(input.value); }); input.addEventListener('input', function(){ render(input.value); }); }
+            if(form){ form.addEventListener('submit', function(){ addTerm(input && input.value); }); }
+            document.addEventListener('click', function(e){ if(!box) return; var within = e.target.closest('#global-search-history') || e.target.closest('#global-search'); if(!within){ box.classList.add('hidden'); } });
+        });
+    </script>
+</body>
+
+</html>

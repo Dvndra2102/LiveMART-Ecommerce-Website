@@ -1,0 +1,105 @@
+{% extends "auth_base.html" %}
+{% load i18n %}
+{% load allauth %}
+
+{% block title %}Sign In | LocalMarket{% endblock %}
+
+{% block content %}
+    <h2 class="text-center text-2xl font-bold text-gray-900">
+        Welcome to LocalMarket
+    </h2>
+    <p class="mt-2 text-center text-sm text-gray-600">
+        Sign in or create an account to get started
+    </p>
+
+    <!-- Tabbed Interface -->
+    <div class="mt-6">
+        <div class="flex border-b border-gray-200">
+            <a href="{% url 'account_login' %}" class="flex-1 py-3 text-center font-medium border-b-2 border-cyan-500 text-cyan-500">
+                Sign In
+            </a>
+            <a href="{% url 'account_signup' %}" class="flex-1 py-3 text-center font-medium text-gray-500 hover:text-gray-700">
+                Sign Up
+            </a>
+        </div>
+    </div>
+
+    {% if form.errors %}
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mt-4" role="alert">
+            <strong class="font-bold">Error:</strong>
+            {% if form.errors.login %}
+            <span class="block sm:inline">Invalid EMail ID entered.</span>
+            {% else %}
+            <span class="block sm:inline">Wrong Password or EMail ID</span>
+            {% endif %}
+        </div>
+    {% endif %}
+    
+    <!-- Sign In Form -->
+    <form class="mt-8 space-y-6" method="POST" action="{% url 'account_login' %}">
+        {% csrf_token %}
+        
+        <div>
+            <label for="id_login" class="block text-sm font-medium text-gray-700">Email</label>
+            <input id="id_login" name="login" type="email" autocomplete="email" required
+                   class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm"
+                   placeholder="you@example.com">
+        </div>
+
+        <div>
+            <label for="id_password" class="block text-sm font-medium text-gray-700">Password</label>
+            <input id="id_password" name="password" type="password" autocomplete="current-password" required
+                   class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm">
+        </div>
+        
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <input id="id_remember" name="remember" type="checkbox" class="h-4 w-4 text-cyan-600 focus:ring-cyan-500 border-gray-300 rounded">
+                <label for="id_remember" class="ml-2 block text-sm text-gray-900"> Remember me </label>
+            </div>
+            <div class="text-sm">
+                <a href="{% url 'account_reset_password' %}" class="font-medium text-cyan-600 hover:text-cyan-500">
+                    Forgot your password?
+                </a>
+            </div>
+        </div>
+
+        <div>
+            <button type="submit"
+                    class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-cyan-500 hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500">
+                Sign In
+            </button>
+        </div>
+    </form>
+    <div id="client-login-error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mt-4" role="alert" style="display:none">
+        <strong class="font-bold">Error:</strong>
+        <span class="block sm:inline">Invalid EMail ID entered.</span>
+    </div>
+    <script>
+    (function(){
+      var form = document.querySelector('form[action="{% url 'account_login' %}"]');
+      var input = document.getElementById('id_login');
+      var box = document.getElementById('client-login-error');
+      function validEmailDomain(v){
+        if(!v) return false;
+        var s = String(v).trim().toLowerCase();
+        return s.endsWith('@gmail.com') || s.endsWith('@yahoo.com') || s.endsWith('@outlook.com');
+      }
+      if(form && input){
+        form.addEventListener('submit', function(e){
+          if(!validEmailDomain(input.value)){
+            e.preventDefault();
+            if(box){ box.style.display = 'block'; }
+            input.focus();
+          } else {
+            if(box){ box.style.display = 'none'; }
+          }
+        });
+      }
+    })();
+    </script>
+    
+    <!-- Social Login (Google) -->
+    {% include "socialaccount/snippets/provider_list.html" with process="login" %}
+    
+{% endblock %}

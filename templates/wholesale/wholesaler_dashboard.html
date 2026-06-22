@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}Wholesale Dashboard{% endblock %}
+
+{% block content %}
+<div x-data="{ showAddModal: false, showEditModal: false, showDeleteModal: false, currentProduct: {} }" class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-3xl font-bold text-gray-900">My Wholesale Products</h1>
+        <div class="flex items-center gap-2">
+        <button @click="showAddModal = true" class="px-5 py-2 text-sm font-medium text-white bg-cyan-500 rounded-lg hover:bg-cyan-600 flex items-center space-x-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+            </svg>
+            <span>Add Product</span>
+        </button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {% for product in products %}
+            <div class="bg-white border border-gray-200 rounded-xl p-4 flex flex-col">
+                {% if product.image_url %}
+                <div class="mb-3">
+                    <img src="{{ product.image_url }}" alt="{{ product.name }}" class="h-40 w-full object-cover rounded-md">
+                </div>
+                {% else %}
+                <div class="mb-3 h-40 w-full bg-gray-100 rounded-md flex items-center justify-center text-gray-400">No image</div>
+                {% endif %}
+                <div class="flex-1">
+                    <h3 class="text-lg font-semibold text-gray-900">{{ product.name }}</h3>
+                    <p class="mt-1 text-sm text-gray-600">Category: {{ product.category.name|default:"Uncategorized" }}</p>
+                    <p class="mt-1 text-sm text-gray-600">Price: ₹{{ product.price|floatformat:2 }}</p>
+                    <p class="mt-1 text-sm text-gray-600">Stock: {{ product.stock_quantity }}</p>
+                    <p class="mt-1 text-sm text-gray-600">Status: {% if product.is_available %}Available{% else %}Unavailable{% endif %}</p>
+                </div>
+                <div class="mt-4 flex space-x-3">
+                    <button 
+                        @click="showEditModal = true; currentProduct = { id: {{ product.id }}, name: '{{ product.name|escapejs }}', description: '{{ product.description|escapejs }}', price: '{{ product.price|floatformat:2 }}', stock_quantity: {{ product.stock_quantity }}, image_url: '{{ product.image_url|default_if_none:''|escapejs }}', is_available: {{ product.is_available|lower }}, category: {{ product.category.id|default:'null' }} }"
+                        class="flex-1 text-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">Edit</button>
+                    <button 
+                        @click="showDeleteModal = true; currentProduct = { id: {{ product.id }}, name: '{{ product.name|escapejs }}' }"
+                        class="flex-1 text-center px-3 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700">Delete</button>
+                </div>
+            </div>
+        {% empty %}
+            {% if search_query %}
+            <div class="col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-4 text-center py-16 bg-white border border-gray-200 rounded-xl">
+                <p class="text-gray-700">No products with the name "{{ search_query }}"</p>
+                <a href="{% url 'wholesale:wholesaler_dashboard' %}" class="mt-4 inline-block px-5 py-2 text-sm font-medium text-white bg-cyan-500 rounded-lg hover:bg-cyan-600">Go to home page</a>
+            </div>
+            {% else %}
+            <div class="col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-4 text-center py-16 bg-white border border-gray-200 rounded-xl">
+                <p class="text-gray-500">No products yet. Create your first product!</p>
+                <button @click="showAddModal = true" class="mt-4 px-5 py-2 text-sm font-medium text-white bg-cyan-500 rounded-lg hover:bg-cyan-600">Add Product</button>
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    <div x-show="showAddModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div x-show="showAddModal" @click="showAddModal = false" x-transition.opacity class="fixed inset-0 bg-gray-900 bg-opacity-75"></div>
+            <div x-show="showAddModal" x-transition class="relative bg-white rounded-lg shadow-xl w-full max-w-lg p-6" @click.away="showAddModal = false">
+                <h3 class="text-lg font-medium leading-6 text-gray-900">Add New Product</h3>
+                <button @click="showAddModal = false" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+                <form method="POST" action="{% url 'wholesale:wholesaler_dashboard' %}" class="mt-6 space-y-4">
+                    {% csrf_token %}
+                    <input type="hidden" name="form_type" value="add_product">
+                    {% for field in add_form %}
+                        <div {% if field.name == 'is_available' %}class="flex items-center space-x-3"{% endif %}>
+                            <label for="add_{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 {% if field.name == 'is_available' %}order-2{% endif %}">{{ field.label }}</label>
+                            {% if field.name == 'is_available' %}
+                                <label class="toggle-switch order-1">
+                                    <input type="checkbox" name="{{ field.name }}" id="add_{{ field.id_for_label }}" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            {% elif field.name == 'category' %}
+                                {{ field }}
+                            {% else %}
+                                <input type="{{ field.field.widget.input_type }}" name="{{ field.name }}" id="add_{{ field.id_for_label }}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm" placeholder="{{ field.field.widget.attrs.placeholder|default_if_none:'' }}">
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    <div class="pt-4 flex justify-end">
+                        <button type="submit" class="w-full px-4 py-2 text-sm font-medium text-white bg-cyan-500 rounded-lg hover:bg-cyan-600">Create Product</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div x-show="showEditModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div x-show="showEditModal" @click="showEditModal = false" x-transition.opacity class="fixed inset-0 bg-gray-900 bg-opacity-75"></div>
+            <div x-show="showEditModal" x-transition class="relative bg-white rounded-lg shadow-xl w-full max-w-lg p-6" @click.away="showEditModal = false">
+                <h3 class="text-lg font-medium leading-6 text-gray-900">Edit Product</h3>
+                <button @click="showEditModal = false" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">&times;</button>
+                <form method="POST" action="{% url 'wholesale:wholesaler_dashboard' %}" class="mt-6 space-y-4">
+                    {% csrf_token %}
+                    <input type="hidden" name="form_type" value="edit_product">
+                    <input type="hidden" name="product_id" :value="currentProduct.id">
+                    <div>
+                        <label for="edit_name" class="block text-sm font-medium text-gray-700">Product Name</label>
+                        <input type="text" name="name" id="edit_name" :value="currentProduct.name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div>
+                        <label for="edit_category" class="block text-sm font-medium text-gray-700">Category</label>
+                        <select name="category" id="edit_category" :value="currentProduct.category" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+                            <option value="">Select category</option>
+                            {% for category in categories %}
+                                <option value="{{ category.id }}">{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="edit_description" class="block text-sm font-medium text-gray-700">Description</label>
+                        <textarea name="description" id="edit_description" :value="currentProduct.description" rows="4" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></textarea>
+                    </div>
+                    <div>
+                        <label for="edit_price" class="block text-sm font-medium text-gray-700">Price (₹ per case/unit)</label>
+                        <input type="number" name="price" id="edit_price" :value="currentProduct.price" step="0.01" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div>
+                        <label for="edit_stock" class="block text-sm font-medium text-gray-700">Stock Quantity</label>
+                        <input type="number" name="stock_quantity" id="edit_stock" :value="currentProduct.stock_quantity" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div>
+                        <label for="edit_image_url" class="block text-sm font-medium text-gray-700">Image URL</label>
+                        <input type="url" name="image_url" id="edit_image_url" :value="currentProduct.image_url" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <label class="toggle-switch order-1">
+                            <input type="checkbox" name="is_available" id="edit_is_available" value="true" :checked="currentProduct.is_available">
+                            <span class="slider"></span>
+                        </label>
+                        <label for="edit_is_available" class="block text-sm font-medium text-gray-700 order-2">Available for sale</label>
+                    </div>
+                    <div class="pt-4 flex justify-end">
+                        <button type="submit" class="w-full px-4 py-2 text-sm font-medium text-white bg-cyan-500 rounded-lg hover:bg-cyan-600">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div x-show="showDeleteModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div x-show="showDeleteModal" @click="showDeleteModal = false" x-transition.opacity class="fixed inset-0 bg-gray-900 bg-opacity-75"></div>
+            <div x-show="showDeleteModal" x-transition class="relative bg-white rounded-lg shadow-xl w-full max-w-sm p-6" @click.away="showDeleteModal = false">
+                <h3 class="text-lg font-medium text-gray-900">Delete Product</h3>
+                <p class="mt-2 text-sm text-gray-500">Are you sure you want to delete "<span x-text="currentProduct.name"></span>"?</p>
+                <form :action="'/wholesale/product/delete/' + currentProduct.id + '/'" method="POST" class="mt-6 flex justify-end space-x-3">
+                    {% csrf_token %}
+                    <button type="button" @click="showDeleteModal = false" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }} — LiveMART{% endblock %}
+
+{% block content %}
+<div class="container mx-auto mt-8 max-w-4xl px-4">
+    <div class="bg-white p-6 rounded-2xl shadow-sm border">
+        <div class="flex gap-6">
+            <div class="w-48 h-48 flex-shrink-0">
+                {% if product.image %}
+                <img src="{{ product.image.url }}" alt="{{ product.name }}"
+                    class="w-full h-full object-cover rounded-md" />
+                {% elif product.image_url %}
+                <img src="{{ product.image_url }}" alt="{{ product.name }}"
+                    class="w-full h-full object-cover rounded-md" />
+                {% else %}
+                <div class="w-full h-full bg-gray-100 rounded-md flex items-center justify-center text-gray-400">
+                    No image
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="flex-1">
+                <h1 class="text-2xl font-bold">{{ product.name }}</h1>
+                <p class="text-gray-600 mt-2">₹{{ product.price|floatformat:2 }}</p>
+
+                {% if product.category %}
+                <p class="text-sm text-gray-500 mt-2">Category: <span class="font-medium">{{ product.category.name
+                        }}</span></p>
+                {% endif %}
+
+                {% if product.description %}
+                <div class="mt-4 text-gray-700">{{ product.description }}</div>
+                {% endif %}
+
+                <div class="mt-6">
+                    <form action="{% url 'store:add_to_cart' product.id %}" method="post" class="inline-block">
+                        {% csrf_token %}
+                        <input type="hidden" name="quantity" value="1" />
+                        <button type="submit" class="px-4 py-2 bg-teal-600 text-white rounded-lg">Add to cart</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

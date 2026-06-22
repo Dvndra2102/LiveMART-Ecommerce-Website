@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Give Feedback{% endblock %}
+
+{% block content %}
+<div class="container mx-auto mt-10 max-w-4xl px-4">
+  <h1 class="text-2xl font-bold text-gray-900 mb-6">Give Feedback — Order #{{ order.id }}</h1>
+
+  <form method="POST" class="space-y-6">
+    {% csrf_token %}
+    {% for it in items %}
+    <div class="bg-white p-4 rounded-2xl shadow-sm border">
+      <div class="flex items-center gap-3 mb-3">
+        {% if it.product and it.product.image_url %}
+        <img src="{{ it.product.image_url }}" alt="{{ it.product.name }}" class="w-12 h-12 rounded object-cover">
+        {% endif %}
+        <div>
+          <div class="text-sm font-semibold text-gray-900">{{ it.product.name }}</div>
+          <div class="text-xs text-gray-500">Qty: {{ it.quantity }}</div>
+        </div>
+      </div>
+      <textarea name="feedback_{{ it.id }}" class="w-full px-3 py-2 border rounded-md" rows="3" placeholder="Write your feedback for this product"></textarea>
+    </div>
+    {% endfor %}
+
+    <div class="flex items-center gap-3">
+      <a href="{% url 'orders:order_detail' order.id %}" class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700">Cancel</a>
+      <button type="submit" class="px-4 py-2 bg-cyan-600 text-white rounded-lg text-sm">Submit Feedback</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

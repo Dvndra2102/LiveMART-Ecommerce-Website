@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% block title %}Order #{{ order.id }} Details{% endblock %}
+
+{% block content %}
+<div class="container mx-auto mt-10 max-w-4xl px-4">
+    <h1 class="text-3xl font-bold text-gray-900 mb-6">Order #{{ order.id }} — {{ order_title_names|default:"Items" }}</h1>
+
+    <div class="bg-white p-6 rounded-2xl shadow-sm border mb-6">
+        <h2 class="text-lg font-semibold mb-4">Order Information</h2>
+        <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+                <p class="text-gray-500">Payment Mode</p>
+                <p class="font-medium">{{ order.payment_mode }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Payment Status</p>
+                <p
+                    class="font-medium {% if order_display_payment_status == 'COMPLETED' %}text-green-600{% elif order_display_payment_status == 'CANCELLED' %}text-red-600{% elif order.payment_status == 'FAILED' %}text-red-600{% else %}text-yellow-600{% endif %}">
+                    {{ order_display_payment_status|default:order.payment_status }}
+                </p>
+            </div>
+            {% if retailer_name %}
+            <div>
+                <p class="text-gray-500">Retailer</p>
+                <p class="font-medium">{{ retailer_name }}</p>
+            </div>
+            {% if retailer_email %}
+            <div>
+                <p class="text-gray-500">Retailer Email</p>
+                <p class="font-medium">{{ retailer_email }}</p>
+            </div>
+            {% endif %}
+            {% endif %}
+
+            {% if customer_name %}
+            <div>
+                <p class="text-gray-500">Customer</p>
+                <p class="font-medium">{{ customer_name }}</p>
+            </div>
+            {% if customer_email %}
+            <div>
+                <p class="text-gray-500">Customer Email</p>
+                <p class="font-medium">{{ customer_email }}</p>
+            </div>
+            {% endif %}
+            {% endif %}
+
+            {% if proxy_wholesalers %}
+            <div class="col-span-2">
+                <p class="text-sm font-semibold text-yellow-800">Wholesaler (proxy)</p>
+                <p class="font-medium">{{ proxy_wholesalers }}</p>
+            </div>
+            {% endif %}
+            <div>
+                <p class="text-gray-500">Order Date</p>
+                <p class="font-medium">{{ order.created_at|date:"d M Y, H:i" }}</p>
+            </div>
+            <div class="col-span-2 mt-2">
+                <p class="text-gray-500">Shipment Address</p>
+                {% if order.addr_state and order.addr_district and order.addr_colony and order.addr_pincode and order.addr_house_number %}
+                <p class="font-medium">
+                    {{ order.addr_house_number }} {{ order.addr_road_number|default:"" }},
+                    {{ order.addr_colony }},
+                    {{ order.addr_district }},
+                    {{ order.addr_state }} — PIN {{ order.addr_pincode }}
+                </p>
+                {% else %}
+                <p class="font-medium text-gray-600">Address not given</p>
+                {% endif %}
+            </div>
+        </div>
+
+        
+
+        <div id="order-progress-root" class="mt-4" data-stage="{{ order.progress_stage|default:0 }}" data-status="{{ order.status }}">
+            <div class="flex items-center justify-between mb-2">
+                <div class="text-sm text-gray-600">Order Status</div>
+                <div id="order-progress-text" class="text-sm font-medium text-gray-900">Pending</div>
+            </div>
+            <div class="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                <div id="order-progress-bar" class="h-3 bg-cyan-600" style="width:0%"></div>
+            </div>
+        </div>
+
+        {% if order.arrived_at %}
+        <div class="mt-2 text-sm text-gray-600">Time of Delivery: <span class="font-medium">{{ order.arrived_at|date:"d M Y, H:i" }}</span></div>
+        {% endif %}
+
+        {% if can_progress_control and order.status != 'CANCELLED' %}
+        <form method="POST" action="{{ order_progress_action_url }}" class="mt-4">
+            {% csrf_token %}
+            <div class="text-xs text-red-600 mb-2">There's no undo after this</div>
+            {% if order.progress_stage == 0 %}
+            <button name="action" value="placed" class="px-4 py-2 bg-cyan-600 text-white rounded-lg">Accept Order</button>
+            <button name="action" value="cancel" class="ml-2 px-4 py-2 bg-red-600 text-white rounded-lg">Cancel Order</button>
+            {% elif order.progress_stage == 1 %}
+            <button name="action" value="dispatched" class="px-4 py-2 bg-cyan-600 text-white rounded-lg">Order Has Dispatched</button>
+            {% elif order.progress_stage == 2 %}
+            <button name="action" value="facility" class="px-4 py-2 bg-cyan-600 text-white rounded-lg">Order Arrived at Facility</button>
+            {% elif order.progress_stage == 3 %}
+            <button name="action" value="out_for_delivery" class="px-4 py-2 bg-cyan-600 text-white rounded-lg">Order out for delivery</button>
+            {% endif %}
+        </form>
+        {% endif %}
+
+        {% if can_buyer_mark_arrived and order.status != 'CANCELLED' %}
+        <form method="POST" action="{{ order_progress_action_url }}" class="mt-3">
+            {% csrf_token %}
+            <div class="text-xs text-red-600 mb-2">There's no undo after this</div>
+            <button name="action" value="mark_arrived" class="px-4 py-2 bg-cyan-600 text-white rounded-lg">Order Has Arrived</button>
+            <button name="action" value="cancel" class="ml-2 px-4 py-2 bg-red-600 text-white rounded-lg">Cancel Order</button>
+        </form>
+        {% endif %}
+
+        {% if order.customer and user.is_customer and order.progress_stage|default:0 >= 5 %}
+        <div class="mt-4">
+            <a href="{% url 'orders:give_feedback' order.id %}"
+               class="inline-flex items-center px-4 py-2 bg-cyan-600 text-white text-sm font-semibold rounded-lg">Give Feedback</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Items -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border">
+        <h2 class="text-lg font-semibold mb-4">Items Purchased</h2>
+
+        <div class="space-y-4">
+            {% for item in items %}
+            <div class="flex justify-between items-center border-b last:border-b-0 pb-3">
+                <div class="flex items-start gap-4">
+                    {% if item.image_url %}
+                    <img src="{{ item.image_url }}" alt="{{ item.product_name }}"
+                        class="w-14 h-14 object-cover rounded-md border"
+                        onerror="this.onerror=null;this.src='/static/img/no-image.png';" />
+                    {% else %}
+                    <div
+                        class="w-14 h-14 bg-gray-100 rounded-md border flex items-center justify-center text-xs text-gray-400">
+                        No image</div>
+                    {% endif %}
+
+                    <div>
+                        <p class="font-medium">{{ item.product_name }}</p>
+
+                        {% if item.category_name %}
+                        <p class="text-xs text-gray-400 mt-1">Category: <span class="text-gray-600">{{item.category_name}}</span>
+                            {% if item.is_proxy and item.proxy_wholesaler_name %}
+                            • <span class="text-yellow-800 font-semibold">Proxy: {{ item.proxy_wholesaler_name }}</span>
+                            {% endif %}
+                        </p>
+                        {% endif %}
+
+                        <p class="text-sm text-gray-500 mt-1">Qty: {{ item.quantity }}</p>
+                    </div>
+                </div>
+
+                <div class="text-right">
+                    <p class="font-semibold">₹{{ item.subtotal|floatformat:2 }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% if user.is_retailer and retailer_feedbacks %}
+    <div class="mt-8">
+        <h2 class="text-xl font-semibold text-gray-800 mb-3">Customer Feedback</h2>
+        <div class="space-y-3">
+            {% for fb in retailer_feedbacks %}
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                <div class="text-sm text-gray-700">{{ fb.customer.full_name|default:fb.customer.username|default:fb.customer.email }}: {{ fb.text }}</div>
+                {% if fb.reply_text %}
+                <div class="mt-2 text-sm text-green-700">Reply: {{ fb.reply_text }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <form method="POST" action="{{ retailer_reply_action_url }}" class="mt-4">
+            {% csrf_token %}
+            <textarea name="retailer_reply_text" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Write your reply to the customer"></textarea>
+            <button type="submit" class="mt-2 px-4 py-2 bg-cyan-600 text-white rounded-lg">Submit</button>
+        </form>
+    </div>
+    {% endif %}
+    <div class="border-t mt-4 pt-4 flex justify-between text-lg font-semibold">
+        <span>Total Paid</span>
+        <span>₹{{ order_total|floatformat:2 }}</span>
+    </div>
+
+    
+
+    {% if retailer_replies %}
+    <div class="mt-8">
+        <h2 class="text-xl font-semibold text-gray-800 mb-3">Reply from Retailer</h2>
+        <div class="space-y-3">
+            {% for fb in retailer_replies %}
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                <div class="text-sm text-gray-700">{{ fb.reply_by.full_name|default:fb.reply_by.username|default:fb.reply_by.email }} on {{ fb.product.name|default:"Product" }}: {{ fb.reply_text }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    </div>
+
+    <div class="mt-8">
+        {% if user.is_wholesaler and order.wholesaler == user %}
+        <a href="{% url 'wholesale:ordered_by' %}" class="text-cyan-600 hover:underline">← Back to Ordered By</a>
+        {% elif user.is_retailer %}
+        <a href="{% url 'store:ordered_by_retailer' %}" class="text-cyan-600 hover:underline">← Back to Ordered By</a>
+        {% elif order.retailer %}
+        <a href="{% url 'wholesale:order_history' %}" class="text-cyan-600 hover:underline">← Back to Order History</a>
+        {% else %}
+        <a href="{% url 'orders:order_history' %}" class="text-cyan-600 hover:underline">← Back to Order History</a>
+        {% endif %}
+    </div>
+</div>
+<script>
+  (function(){
+    var root = document.getElementById('order-progress-root');
+    if(!root) return;
+    var bar = document.getElementById('order-progress-bar');
+    var textEl = document.getElementById('order-progress-text');
+    function update(){
+      var s = parseInt(root.getAttribute('data-stage') || '0', 10);
+      var status = String(root.getAttribute('data-status') || '').toUpperCase();
+      var pct = 0; var label = 'Pending';
+      if (status === 'CANCELLED') { pct = 0; label = 'Cancelled'; textEl.classList.remove('text-gray-900'); textEl.classList.add('text-red-600'); }
+      else if (s === 0) { pct = 0; label = 'Pending'; textEl.classList.remove('text-red-600'); textEl.classList.add('text-gray-900'); }
+      else if (s === 1) { pct = 10; label = 'Order Placed'; }
+      else if (s === 2) { pct = 50; label = 'Order Dispatched'; }
+      else if (s === 3) { pct = 75; label = 'Order Arrived at the delivery facility'; }
+      else if (s === 4) { pct = 90; label = 'Order Out for Delivery'; }
+      else if (s >= 5) { pct = 100; label = 'Order Arrived'; }
+      bar.style.width = pct + '%';
+      textEl.textContent = label;
+    }
+    update();
+  })();
+</script>
+{% endblock %}

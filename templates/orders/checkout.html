@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+{% block title %}Checkout{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+  #map { height: 300px; width: 100%; border-radius: 0.5rem; z-index: 1; }
+  .leaflet-container { font-family: inherit; }
+</style>
+<div class="container mx-auto mt-10 max-w-5xl px-4">
+    <!-- Progress / Heading -->
+    <div class="mb-8">
+        <p class="text-sm uppercase tracking-wide text-cyan-600 font-semibold">
+            Checkout
+        </p>
+        <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mt-1">
+            Review & Place Your Order
+        </h1>
+        <p class="text-gray-500 mt-2 text-sm md:text-base">
+            Confirm your items and choose a payment method to complete your purchase.
+        </p>
+    </div>
+
+    {% if error %}
+    <div class="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        {{ error }}
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- LEFT: Address + Payment in one form -->
+        <div class="lg:col-span-2">
+            {% if checkout_action_url %}
+            <form method="POST" action="{{ checkout_action_url }}" class="space-y-6">
+            {% else %}
+            <form method="POST" action="{% url 'orders:checkout' %}" class="space-y-6">
+            {% endif %}
+                {% csrf_token %}
+
+                <!-- Shipment Address card -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-cyan-500 text-white text-xs font-bold">1</span>
+                        Shipment Address
+                    </h2>
+
+                    <!-- Map Section -->
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="block text-sm font-medium text-gray-700">Select Location on Map</label>
+                            <button type="button" id="detect-location-btn" class="text-xs bg-cyan-50 text-cyan-700 px-3 py-1 rounded-full hover:bg-cyan-100 transition flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                Detect My Location
+                            </button>
+                        </div>
+                        <div id="map" class="border border-gray-200 shadow-inner"></div>
+                        <p class="text-xs text-gray-500 mt-2">Drag the marker to pinpoint your delivery location. Address fields will auto-fill.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">State</label>
+                            <input id="addr_state" type="text" name="addr_state" value="{{ addr_state|default_if_none:'' }}" class="w-full px-3 py-2 border rounded-md" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">District</label>
+                            <input id="addr_district" type="text" name="addr_district" value="{{ addr_district|default_if_none:'' }}" class="w-full px-3 py-2 border rounded-md" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Colony</label>
+                            <input id="addr_colony" type="text" name="addr_colony" value="{{ addr_colony|default_if_none:'' }}" class="w-full px-3 py-2 border rounded-md" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">PIN Code</label>
+                            <input id="addr_pincode" type="text" name="addr_pincode" value="{{ addr_pincode|default_if_none:'' }}" class="w-full px-3 py-2 border rounded-md" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Road Number</label>
+                            <input id="addr_road_number" type="text" name="addr_road_number" value="{{ addr_road_number|default_if_none:'' }}" class="w-full px-3 py-2 border rounded-md">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">House Number</label>
+                            <input id="addr_house_number" type="text" name="addr_house_number" value="{{ addr_house_number|default_if_none:'' }}" class="w-full px-3 py-2 border rounded-md" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment method card -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-cyan-500 text-white text-xs font-bold">2</span>
+                        Payment Method
+                    </h2>
+
+                    <!-- Payment options -->
+                    <div class="space-y-3">
+                        <label class="flex items-center justify-between gap-3 border rounded-xl px-4 py-3 cursor-pointer hover:border-cyan-500 hover:bg-cyan-50 transition">
+                            <div class="flex items-center gap-3">
+                                <input
+                                    type="radio"
+                                    name="payment_mode"
+                                    value="Online"
+                                    class="h-4 w-4 text-cyan-600 border-gray-300 focus:ring-cyan-500"
+                                    required
+                                >
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900">
+                                        Pay Online
+                                    </div>
+                                    <div class="text-xs text-gray-500">
+                                        UPI / Card / Netbanking via Razorpay (fast & secure).
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="text-xs font-semibold px-2 py-1 rounded-full bg-cyan-100 text-cyan-700">
+                                Recommended
+                            </span>
+                        </label>
+
+                        <label class="flex items-center gap-3 border rounded-xl px-4 py-3 cursor-pointer hover:border-cyan-500 hover:bg-cyan-50 transition">
+                            <input
+                                type="radio"
+                                name="payment_mode"
+                                value="Cash on Delivery"
+                                class="h-4 w-4 text-cyan-600 border-gray-300 focus:ring-cyan-500"
+                                required
+                            >
+                            <div>
+                                <div class="text-sm font-medium text-gray-900">
+                                    Cash on Delivery
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    Pay in cash when your order is delivered.
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+
+                </div>
+
+                <!-- Actions -->
+                <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 pt-4">
+                    <a href="{% url 'store:view_cart' %}"
+                       class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition">
+                        ← Back to Cart
+                    </a>
+
+                    <button type="submit" id="checkout-submit"
+                        class="inline-flex items-center justify-center px-6 py-2.5 bg-cyan-600 text-sm font-semibold text-white rounded-xl shadow-sm hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-1 transition">
+                        Confirm & Place Order
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- RIGHT: Order summary -->
+        <aside class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-fit lg:self-start">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-cyan-500 text-white text-xs font-bold">3</span>
+                Order Summary
+            </h2>
+
+            <div class="max-h-72 overflow-y-auto pr-1 space-y-3 mb-4">
+                {% for item in items %}
+                <div class="flex items-start justify-between gap-3 border-b last:border-b-0 pb-3">
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-gray-900">
+                            {{ item.product.name }}
+                        </p>
+                        <p class="text-xs text-gray-500 mt-1">
+                            Qty: {{ item.quantity }}
+                        </p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-semibold text-gray-900">
+                            ₹{{ item.subtotal|floatformat:2 }}
+                        </p>
+                        <p class="text-[11px] text-gray-400">
+                            (₹{{ item.unit_price|floatformat:2 }} each)
+                        </p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="border-t border-gray-100 pt-4 space-y-2 text-sm">
+                <div class="flex justify-between text-gray-600">
+                    <span>Items ({{ items|length }})</span>
+                    <span>₹{{ cart_total_price|floatformat:2 }}</span>
+                </div>
+                <!-- Add discount / shipping later if needed -->
+                <div class="flex justify-between text-base font-semibold text-gray-900 mt-2">
+                    <span>Total Payable</span>
+                    <span>₹{{ cart_total_price|floatformat:2 }}</span>
+                </div>
+            </div>
+
+            <p class="mt-4 text-[11px] text-gray-400">
+                By placing your order, you agree to our Terms & Conditions and Refund Policy.
+            </p>
+        </aside>
+    </div>
+</div>
+<script>
+  (function(){
+    var submit = document.getElementById('checkout-submit');
+    var requiredIds = ['addr_state','addr_district','addr_colony','addr_pincode','addr_house_number'];
+    function allFilled(){
+      for(var i=0;i<requiredIds.length;i++){ var el = document.getElementById(requiredIds[i]); if(!el || !String(el.value||'').trim()) return false; }
+      var pm = document.querySelector('input[name="payment_mode"]:checked');
+      return !!pm;
+    }
+    function update(){ if(submit){ submit.disabled = !allFilled(); submit.classList.toggle('opacity-60', submit.disabled); } }
+    requiredIds.forEach(function(id){ var el = document.getElementById(id); if(el){ el.addEventListener('input', update); el.addEventListener('change', update); }});
+    var radios = document.querySelectorAll('input[name="payment_mode"]');
+    radios.forEach(function(r){ r.addEventListener('change', update); });
+    update();
+  })();
+</script>
+<script>
+  document.addEventListener('DOMContentLoaded', function(){
+    var defaultLat = 20.5937; // India center
+    var defaultLng = 78.9629;
+    var defaultZoom = 5;
+
+    var map = L.map('map').setView([defaultLat, defaultLng], defaultZoom);
+
+    L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+      maxZoom: 20,
+      subdomains: ['mt0','mt1','mt2','mt3'],
+      attribution: '&copy; Google Maps'
+    }).addTo(map);
+
+    var marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+
+    function updateAddressFromCoords(lat, lng){
+      var url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=en`;
+      fetch(url, { headers: { 'User-Agent': 'LiveMart-Checkout/1.0' }})
+        .then(function(r){ return r.json(); })
+        .then(function(data){
+          if(data && data.address){
+            var addr = data.address;
+            var displayName = data.display_name || "";
+
+            var el;
+            el = document.getElementById('addr_state'); if(el) el.value = addr.state || addr.province || '';
+            el = document.getElementById('addr_district'); if(el) el.value = addr.state_district || addr.county || addr.city || '';
+            el = document.getElementById('addr_colony'); if(el) el.value = addr.suburb || addr.neighbourhood || addr.residential || addr.village || '';
+            el = document.getElementById('addr_pincode'); if(el) el.value = addr.postcode || '';
+            el = document.getElementById('addr_road_number'); if(el) el.value = addr.road || '';
+
+            var houseNumEl = document.getElementById('addr_house_number');
+            if(houseNumEl){
+              var houseNum = addr.house_number;
+              if(!houseNum && displayName){
+                var match = displayName.match(/(?:#|No\.|Flat\s)\s*([A-Za-z0-9\-\/]+)/i);
+                if(match){ houseNum = match[1]; }
+              }
+              if(houseNum){
+                houseNumEl.value = houseNum;
+                houseNumEl.classList.remove('bg-yellow-50','border-yellow-400');
+              }else{
+                houseNumEl.value = "";
+                houseNumEl.classList.add('bg-yellow-50','border-yellow-400');
+                houseNumEl.placeholder = "Please enter House No.";
+                houseNumEl.focus();
+              }
+            }
+          }
+        })
+        .catch(function(err){ console.error('Geocoding error:', err); });
+    }
+
+    marker.on('dragend', function(){
+      var latlng = marker.getLatLng();
+      updateAddressFromCoords(latlng.lat, latlng.lng);
+    });
+
+    map.on('click', function(e){
+      marker.setLatLng(e.latlng);
+      updateAddressFromCoords(e.latlng.lat, e.latlng.lng);
+    });
+
+    var detectBtn = document.getElementById('detect-location-btn');
+    if(detectBtn){
+      detectBtn.addEventListener('click', function(){
+        if('geolocation' in navigator){
+          detectBtn.textContent = 'Locating...';
+          navigator.geolocation.getCurrentPosition(function(position){
+            var lat = position.coords.latitude;
+            var lng = position.coords.longitude;
+            map.setView([lat,lng], 16);
+            marker.setLatLng([lat,lng]);
+            updateAddressFromCoords(lat,lng);
+            detectBtn.textContent = 'Detect My Location';
+          }, function(error){
+            console.error('Geolocation error:', error);
+            alert('Could not detect location. Please ensure location services are enabled.');
+            detectBtn.textContent = 'Detect My Location';
+          });
+        }else{
+          alert('Geolocation is not supported by your browser.');
+        }
+      });
+    }
+
+    setTimeout(function(){ map.invalidateSize(); }, 100);
+  });
+</script>
+{% endblock %}
